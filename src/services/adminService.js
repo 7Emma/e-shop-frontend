@@ -149,6 +149,13 @@ class AdminService {
   // ============ STATISTIQUES ============
 
   /**
+   * Obtenir le profil de l'admin par ID
+   */
+  getAdminProfile(adminId) {
+    return api.get(`/admin/profile/${adminId}`);
+  }
+
+  /**
    * Obtenir les statistiques du dashboard
    */
   getDashboardStats() {

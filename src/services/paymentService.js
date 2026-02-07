@@ -5,13 +5,14 @@ import { createCheckoutSession as apiCreateCheckoutSession, getPaymentStatus as 
  */
 class PaymentService {
   /**
-   * Créer une session de paiement Stripe
-   * @param {Object} shippingAddress - Adresse de livraison
-   * @returns {Object} SessionId et URL de paiement
-   */
-  async createCheckoutSession(shippingAddress) {
+    * Créer une session de paiement Stripe
+    * @param {Object} shippingAddress - Adresse de livraison
+    * @param {Array} cartItems - Articles du panier (pour les guests)
+    * @returns {Object} SessionId et URL de paiement
+    */
+  async createCheckoutSession(shippingAddress, cartItems = []) {
     try {
-      const response = await apiCreateCheckoutSession(shippingAddress);
+      const response = await apiCreateCheckoutSession(shippingAddress, cartItems);
       return response.data;
     } catch (error) {
       throw error.response?.data || error;

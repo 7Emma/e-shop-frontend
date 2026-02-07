@@ -7,6 +7,7 @@ import {
   Loader,
   ArrowRight,
   Star,
+  Download,
 } from "lucide-react";
 
 function TrackOrder() {
@@ -204,6 +205,38 @@ function TrackOrder() {
     } catch (err) {
       console.error("Erreur récupération commande:", err);
       setError("Erreur de connexion au serveur");
+    }
+  };
+
+  // Télécharger le reçu PDF
+  const handleDownloadReceipt = async () => {
+    if (!order?.trackingCode) {
+      setError("Code de suivi non disponible");
+      return;
+    }
+
+    try {
+      const endpoint = `${API_BASE}/orders/track/${order.trackingCode}/receipt/pdf`;
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.message || `Erreur ${response.status}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const element = document.createElement("a");
+      element.href = URL.createObjectURL(blob);
+      element.download = `Reçu_${order.trackingCode}.pdf`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      setMessage("✅ Reçu téléchargé avec succès");
+    } catch (err) {
+      console.error("Erreur téléchargement reçu:", err);
+      setError("Erreur lors du téléchargement du reçu");
     }
   };
 
@@ -506,6 +539,17 @@ function TrackOrder() {
                 </div>
               </div>
             )}
+
+            {/* Télécharger le reçu PDF */}
+            <div className="mb-8">
+              <button
+                onClick={handleDownloadReceipt}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+              >
+                <Download size={20} />
+                Télécharger le reçu (PDF)
+              </button>
+            </div>
 
             {/* Bouton "Reçu" - Affiche seulement si status === 'delivered' et pas encore reçu */}
             {order.status === "delivered" && !order.isReceived && (

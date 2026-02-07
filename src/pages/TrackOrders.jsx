@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Package, Search, AlertCircle, Truck, Calendar, MapPin, DollarSign } from "lucide-react";
 import { orderService, notificationService } from "../services";
 
 function TrackOrders() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -13,7 +14,20 @@ function TrackOrders() {
   useEffect(() => {
     // Charger les commandes depuis localStorage
     loadOrdersFromStorage();
-  }, []);
+    
+    // Si un code est passé en paramètre, chercher automatiquement
+    const codeParam = searchParams.get("code");
+    if (codeParam) {
+      setSearchQuery(codeParam);
+      // Auto-search après le rendu
+      setTimeout(() => {
+        const form = document.querySelector("form");
+        if (form) {
+          form.dispatchEvent(new Event("submit", { bubbles: true }));
+        }
+      }, 100);
+    }
+  }, [searchParams]);
 
   const loadOrdersFromStorage = () => {
     try {
@@ -41,18 +55,36 @@ function TrackOrders() {
     setError(null);
 
     try {
-      // Chercher dans les commandes locales
+      // Chercher d'abord dans les commandes locales
       const found = orders.find(
         (order) =>
           order._id.includes(searchQuery) ||
-          order.orderNumber?.includes(searchQuery)
+          order.orderNumber?.includes(searchQuery) ||
+          order.trackingCode?.includes(searchQuery)
       );
 
       if (found) {
         setExpandedOrderId(found._id);
         notificationService.success("Commande trouvée");
       } else {
-        setError("Commande non trouvée. Vérifiez le numéro de commande.");
+        // Chercher via l'API (pour les commandes guest)
+        try {
+          const response = await orderService.getOrderByTrackingCode(searchQuery);
+          if (response && response.order) {
+            // Ajouter la commande trouvée à la liste
+            setOrders([response.order]);
+            setExpandedOrderId(response.order._id);
+            notificationService.success("Commande trouvée");
+          } else {
+            setError("Commande non trouvée. Vérifiez le code de suivi.");
+          }
+        } catch (apiErr) {
+          if (apiErr.response?.status === 404) {
+            setError("Commande non trouvée. Vérifiez le code de suivi.");
+          } else {
+            setError("Erreur lors de la recherche de la commande");
+          }
+        }
       }
     } catch (err) {
       setError("Erreur lors de la recherche");
@@ -185,14 +217,14 @@ function TrackOrders() {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {orders.map((order, index) => (
               <div
-                key={order._id}
+                key={order._id || order.trackingCode || index}
                 className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden"
               >
                 {/* Order Header - Clickable */}
                 <button
-                  onClick={() => toggleOrderDetails(order._id)}
+                  onClick={() => toggleOrderDetails(order._id || order.trackingCode || index)}
                   className="w-full p-6 hover:bg-gray-50 transition-colors text-left"
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -200,10 +232,10 @@ function TrackOrders() {
                       {/* Order Number */}
                       <div className="mb-3">
                         <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-                          Commande #{order.orderNumber || order._id.slice(-8)}
+                          Commande #{order.orderNumber || order._id?.slice(-8) || 'N/A'}
                         </p>
                         <p className="text-sm text-gray-600 font-mono mt-1">
-                          {order._id}
+                          {order._id || order.trackingCode || 'N/A'}
                         </p>
                       </div>
 
@@ -254,13 +286,13 @@ function TrackOrders() {
 
                     {/* Chevron Icon */}
                     <div className="text-gray-400 flex-shrink-0 mt-1">
-                      {expandedOrderId === order._id ? "▲" : "▼"}
+                      {expandedOrderId === (order._id || order.trackingCode || index) ? "▲" : "▼"}
                     </div>
                   </div>
                 </button>
 
                 {/* Order Details - Expandable */}
-                {expandedOrderId === order._id && (
+                {expandedOrderId === (order._id || order.trackingCode || index) && (
                   <div className="border-t border-gray-100 p-6 bg-gray-50">
                     {/* Items */}
                     <div className="mb-6">

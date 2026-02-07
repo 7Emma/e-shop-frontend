@@ -1,53 +1,56 @@
-import { BarChart3, Users, ShoppingBag, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart3, Users, ShoppingBag, TrendingUp, AlertCircle, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminHeader from '../../components/Layout/AdminHeader';
 import { adminService } from '../../services';
+import { authService } from '../../services';
+import { useSessionTimeout } from '../../hooks/useSessionTimeout';
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [adminProfile, setAdminProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // ⏱️ Session timeout après 2 min d'inactivité
+  useSessionTimeout();
+
   useEffect(() => {
-    // Vérifier l'authentification et le rôle admin
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!token || user.role !== 'admin') {
-      navigate('/');
-      return;
-    }
-
-    // Récupérer les statistiques
-    const loadStats = async () => {
+    // Récupérer les statistiques et le profil admin
+    const loadDashboard = async () => {
       try {
         setIsLoading(true);
-        const response = await adminService.getDashboardStats();
-        setStats(response.data.stats || {
+        const user = authService.getUser();
+
+        // Récupérer les statistiques
+        const statsResponse = await adminService.getDashboardStats();
+        setStats(statsResponse.data.stats || {
           totalProducts: 0,
           totalUsers: 0,
           totalOrders: 0,
           totalRevenue: 0,
           pendingOrders: 0,
         });
+
+        // Utiliser l'admin connecté depuis localStorage
+        setAdminProfile(user);
       } catch (err) {
         setError(err.response?.data?.message || 'Erreur lors du chargement');
-        console.error('Erreur loadStats:', err);
+        console.error('Erreur loadDashboard:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadStats();
+    loadDashboard();
   }, [navigate]);
 
   if (isLoading) {
     return (
       <>
         <AdminHeader />
-        <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+        <div className="w-full mx-auto px-4 py-12 text-center">
           <p className="text-gray-600">Chargement du dashboard...</p>
         </div>
       </>
@@ -99,7 +102,33 @@ function AdminDashboard() {
     <>
       <AdminHeader />
       <main className="bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Admin Profile Card */}
+          {adminProfile && (
+            <div className="mb-8 bg-white rounded-lg shadow p-6 border-l-4 border-red-600">
+              <div className="flex items-center gap-4">
+                <div className="bg-red-100 p-4 rounded-full">
+                  <User size={32} className="text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {adminProfile.firstName} {adminProfile.lastName}
+                  </h2>
+                  <p className="text-gray-600">{adminProfile.email}</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Rôle: <span className="font-semibold text-red-600">{adminProfile.role}</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Connecté depuis:</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {adminProfile.createdAt ? new Date(adminProfile.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900">

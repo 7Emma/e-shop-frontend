@@ -1,10 +1,11 @@
-import { LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, X, User } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 function AdminHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -12,18 +13,20 @@ function AdminHeader() {
     navigate('/');
   };
 
+  const isActive = (href) => {
+    return location.pathname === href;
+  };
+
   const menuItems = [
     { label: 'Tableau de bord', href: '/admin' },
     { label: 'Produits', href: '/admin/products' },
     { label: 'Commandes', href: '/admin/orders' },
-    { label: 'Utilisateurs', href: '/admin/users' },
-    { label: 'Avis', href: '/admin/reviews' },
     { label: 'Paramètres', href: '/admin/settings' },
   ];
 
   return (
-    <header className="bg-gray-900 text-white sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="w-screen bg-gray-900 text-white sticky top-0 z-40 left-0">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/admin" className="flex items-center gap-2">
@@ -39,7 +42,11 @@ function AdminHeader() {
               <Link
                 key={item.href}
                 to={item.href}
-                className="text-gray-300 hover:text-white transition"
+                className={`transition font-medium pb-1 ${
+                  isActive(item.href)
+                    ? 'text-white border-b-2 border-red-600'
+                    : 'text-gray-300 hover:text-white border-b-2 border-transparent hover:border-red-600'
+                }`}
               >
                 {item.label}
               </Link>
@@ -74,11 +81,16 @@ function AdminHeader() {
                 key={item.href}
                 to={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition"
+                className={`block px-4 py-2 rounded-lg transition ${
+                  isActive(item.href)
+                    ? 'bg-red-600 text-white font-semibold'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
               >
                 {item.label}
               </Link>
             ))}
+
           </nav>
         )}
       </div>

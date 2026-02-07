@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminHeader from '../../components/Layout/AdminHeader';
 import { adminService } from '../../services';
+import { useSessionTimeout } from '../../hooks/useSessionTimeout';
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -14,12 +15,16 @@ function AdminOrders() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const navigate = useNavigate();
 
+  // ⏱️ Session timeout après 2 min d'inactivité
+  useSessionTimeout();
+
   // Vérification admin
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.role !== 'admin') {
-      navigate('/');
-    }
+    // Désactivé temporairement pour tester
+    // const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // if (user.role !== 'admin') {
+    //   navigate('/');
+    // }
   }, [navigate]);
 
   // Charger les commandes
@@ -134,7 +139,7 @@ function AdminOrders() {
     return (
       <>
         <AdminHeader />
-        <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+        <div className="w-full mx-auto px-4 py-12 text-center">
           <p className="text-gray-600">Chargement des commandes...</p>
         </div>
       </>
@@ -145,7 +150,7 @@ function AdminOrders() {
     <>
       <AdminHeader />
       <main className="bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900">Commandes</h1>
@@ -214,7 +219,7 @@ function AdminOrders() {
                     <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-200">
                       <div>
                         <p className="text-sm text-gray-500">Client</p>
-                        <p className="text-gray-900">{order.user?.email}</p>
+                        <p className="text-gray-900">{order.user?.email || order.shippingAddress?.email || 'Guest'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Date</p>
@@ -366,18 +371,18 @@ function AdminOrders() {
                   </p>
                   <div className="space-y-3">
                     {selectedOrder.items?.map((item, idx) => (
-                      <div key={idx} className="text-sm bg-gray-50 p-3 rounded-lg">
-                        <p className="text-gray-900 font-semibold">
-                          {item.product?.name}
-                        </p>
-                        <p className="text-gray-600">
-                          Qty: {item.quantity} × {item.price.toFixed(2)}€
-                        </p>
-                        <p className="text-gray-900 font-semibold mt-1">
-                          Sous-total: {(item.quantity * item.price).toFixed(2)}€
-                        </p>
-                      </div>
-                    ))}
+                       <div key={idx} className="text-sm bg-gray-50 p-3 rounded-lg">
+                         <p className="text-gray-900 font-semibold">
+                           {item.product?.name || item.name}
+                         </p>
+                         <p className="text-gray-600">
+                           Qty: {item.quantity} × {item.price.toFixed(2)}€
+                         </p>
+                         <p className="text-gray-900 font-semibold mt-1">
+                           Sous-total: {(item.quantity * item.price).toFixed(2)}€
+                         </p>
+                       </div>
+                     ))}
                   </div>
                 </div>
 

@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Plus, Minus, Trash2, X, Tag } from "lucide-react";
 import { TAILWIND_CLASSES } from "../config/colors";
 import { useCart } from "../hooks";
 
 const ShoppingCartComponent = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
@@ -11,6 +13,16 @@ const ShoppingCartComponent = () => {
 
   // Service hook
   const { cart, updateQuantity, removeFromCart, isLoading, error } = useCart();
+  
+  const handleCheckout = () => {
+    console.log('🛒 handleCheckout - cartItems:', cartItems);
+    console.log('🛒 handleCheckout - cart:', cart);
+    if (cartItems.length === 0) {
+      console.warn('⚠️ Panier vide - impossible de procéder au paiement');
+      return;
+    }
+    navigate('/checkout');
+  };
 
   // Extract items from cart
   const cartItems = cart.items || [];
@@ -56,6 +68,7 @@ const ShoppingCartComponent = () => {
     0
   );
   const discount = appliedPromo ? subtotal * appliedPromo.discount : 0;
+  // Frais de livraison: gratuit à partir de 100€ (cohérent avec backend)
   const shipping = subtotal > 100 ? 0 : 5.99;
   const total = subtotal - discount + shipping;
 
@@ -250,10 +263,11 @@ const ShoppingCartComponent = () => {
                   </span>
                 </div>
                 <button
-                  className={`w-full bg-gradient-to-r ${TAILWIND_CLASSES.cart.gradient} text-white py-4 rounded-xl font-bold text-lg hover:from-primary-700 hover:to-secondary-800 transition-all shadow-lg hover:shadow-xl`}
-                >
-                  Procéder au paiement
-                </button>
+                   onClick={handleCheckout}
+                   className={`w-full bg-gradient-to-r ${TAILWIND_CLASSES.cart.gradient} text-white py-4 rounded-xl font-bold text-lg hover:from-primary-700 hover:to-secondary-800 transition-all shadow-lg hover:shadow-xl`}
+                 >
+                   Procéder au paiement
+                 </button>
               </div>
             )}
           </div>

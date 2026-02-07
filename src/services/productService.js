@@ -85,11 +85,11 @@ class ProductService {
   // Catégories disponibles
   getCategories() {
     return [
-      'Vetements',
+      'Vêtements',
       'Chaussures',
       'Montres',
       'Bijoux',
-      'Beaute'
+      'Beauté'
     ];
   }
 

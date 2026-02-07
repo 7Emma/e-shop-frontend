@@ -3,6 +3,7 @@ import {
   getOrderById,
   createOrder as apiCreateOrder,
   getOrderBySessionId as apiGetOrderBySessionId,
+  getOrderByTrackingCode as apiGetOrderByTrackingCode,
 } from './api';
 
 class OrderService {
@@ -48,6 +49,16 @@ class OrderService {
       return response.data;
     } catch (error) {
       throw error.response?.data || error;
+    }
+  }
+
+  // Récupérer une commande par code de suivi
+  async getOrderByTrackingCode(trackingCode) {
+    try {
+      const response = await apiGetOrderByTrackingCode(trackingCode);
+      return response.data;
+    } catch (error) {
+      throw error;
     }
   }
 

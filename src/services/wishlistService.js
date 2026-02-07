@@ -121,7 +121,18 @@ class WishlistService {
 
     try {
       const res = await getWishlist();
-      this.state = this.validateState(res.data.wishlist || res.data);
+      
+      // Pour les guests, conserver les données locales (localStorage)
+      // car le serveur retourne une liste vide
+      if (res.data.isGuest) {
+        // Ne pas remplacer la wishlist locale pour les guests
+        // car le serveur ne gère pas les données guest
+        console.log('ℹ️ Guest user - keepWishlist from localStorage');
+      } else {
+        // Pour les utilisateurs connectés, utiliser la réponse du serveur
+        this.state = this.validateState(res.data.wishlist || res.data);
+      }
+      
       this.updateCache();
       this.saveToStorage();
       this.notifySubscribers();

@@ -1,6 +1,5 @@
 import { BrowserRouter } from "react-router-dom";
 import AppRoute from "./routes/AppRoute";
-import DebugPanel from "./components/DebugPanel";
 import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
@@ -8,7 +7,6 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <AppRoute />
-      <DebugPanel />
     </BrowserRouter>
   );
 }

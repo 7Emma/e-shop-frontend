@@ -25,7 +25,16 @@ function Checkout() {
     const fetchCart = async () => {
       try {
         setLoading(true);
-        await cartService.fetchCart();
+        // Pour les guest users, le serveur retourne un panier vide
+        // Donc garder le panier local si c'est un guest
+        const currentCart = cartService.getCart();
+        
+        // Ne recharger du serveur que si c'est un user authentifié
+        const token = localStorage.getItem('token');
+        if (token) {
+          await cartService.fetchCart();
+        }
+        
         setCart(cartService.getCart());
       } catch (err) {
         notificationService.error("Erreur lors du chargement du panier");
@@ -101,8 +110,22 @@ function Checkout() {
         country: formData.country,
         phone: formData.phone,
       };
+      
+      // Envoyer aussi les articles du panier (pour les guests)
+      // Nettoyer les images base64 (trop volumineux pour envoyer)
+      const cartItems = (cart?.items || []).map(item => ({
+        product: {
+          _id: item.product._id,
+          name: item.product.name,
+          description: item.product.description,
+          price: item.product.price,
+          // Image non envoyée (base64 trop volumineux)
+        },
+        quantity: item.quantity
+      }));
+      console.log('📦 Items nettoyés envoyés au paiement:', JSON.stringify(cartItems, null, 2));
 
-      const result = await paymentService.createCheckoutSession(shippingAddress);
+      const result = await paymentService.createCheckoutSession(shippingAddress, cartItems);
 
       console.log("Réponse paiement:", result);
 
@@ -138,10 +161,11 @@ function Checkout() {
   }
 
   const subtotal = cart?.totalPrice || 0; // Subtotal en HT
-  const shipping = subtotal > 50 ? 0 : 10;
-  // TVA: 18% (les prix sont en HT)
+  // Frais de livraison: gratuit à partir de 100€
+  const shipping = subtotal > 100 ? 0 : 5.99;
+  // TVA: 18%
   const TVA_RATE = 0.18;
-  const tax = subtotal * TVA_RATE;
+  const tax = Math.round(subtotal * TVA_RATE * 100) / 100;
   const total = subtotal + shipping + tax;
 
   return (

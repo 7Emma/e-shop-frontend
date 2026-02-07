@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 function Footer() {
   return (
     <footer className="bg-gray-950 text-white border-t-2 border-red-600">
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
           {/* Brand & Newsletter - Takes more space */}
@@ -175,10 +175,10 @@ function Footer() {
             <Link to="/privacy" className="hover:text-white transition">
               Confidentialité
             </Link>
-            <Link to="/terms" className="hover:text-white transition">
+            <Link to="/conditions" className="hover:text-white transition">
               CGV
             </Link>
-            <Link to="/mentions" className="hover:text-white transition">
+            <Link to="/mentions-legales" className="hover:text-white transition">
               Mentions
             </Link>
           </div>

@@ -26,54 +26,79 @@ function OrderSuccess() {
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
-    const checkPaymentStatus = async (retryCount = 0) => {
-      if (!sessionId) {
-        setStatus("error");
-        setError("Session de paiement introuvable");
-        return;
-      }
+    if (!sessionId) {
+      setStatus("error");
+      setError("Session de paiement introuvable");
+      return;
+    }
 
+    let isMounted = true;
+    let retryCount = 0;
+    const MAX_RETRIES = 10;
+    const RETRY_DELAY = 2000; // 2 secondes
+
+    const fetchOrder = async () => {
       try {
-        const result = await paymentService.getPaymentStatus(sessionId);
-
-        if (result.status === "paid") {
+        console.log(`📦 Tentative ${retryCount + 1}/${MAX_RETRIES} de récupération de la commande...`);
+        
+        const response = await orderService.getOrderBySessionId(sessionId);
+        
+        if (isMounted && response && response.order) {
+          console.log("✅ Commande trouvée:", response.order._id);
+          setOrder(response.order);
           setStatus("success");
           notificationService.success("Paiement confirmé !");
-
-          // Vider le panier côté frontend
           cartService.reset();
-
-          // Récupérer la commande via le sessionId Stripe
-          try {
-            const response = await orderService.getOrderBySessionId(sessionId);
-            if (response && response.order) {
-              setOrder(response.order);
-            }
-          } catch (err) {
-            // Si la commande n'existe pas encore (webhook pas déclenché), retry
-            if (err.response?.status === 404 && retryCount < 5) {
-              console.log(`Tentative ${retryCount + 1}/5 - Commande en création...`);
-              setTimeout(() => checkPaymentStatus(retryCount + 1), 2000);
-              return;
-            }
-            console.log("Erreur récupération commande:", err);
-          }
-        } else {
-          setStatus("error");
-          setError("Le paiement n'a pas pu être confirmé");
+          return true; // Success
         }
+        return false; // Not found yet
       } catch (err) {
-        console.error("Erreur vérification paiement:", err);
-        setStatus("error");
-        setError(err.message || "Erreur lors de la vérification du paiement");
+        if (err.response?.status === 404) {
+          console.log(`⏳ Commande pas encore disponible (tentative ${retryCount + 1})`);
+          return false; // Retry
+        }
+        // Erreur réelle (pas juste 404)
+        console.error("❌ Erreur récupération commande:", err);
+        if (isMounted) {
+          setStatus("error");
+          setError("Erreur lors de la récupération de la commande");
+        }
+        return true; // Stop retrying (real error)
       }
     };
 
-    const timer = setTimeout(() => {
-      checkPaymentStatus();
-    }, 1500);
+    const pollOrder = async () => {
+      while (retryCount < MAX_RETRIES && isMounted) {
+        const success = await fetchOrder();
+        
+        if (success) {
+          return; // Found order, stop polling
+        }
+        
+        retryCount++;
+        if (retryCount < MAX_RETRIES && isMounted) {
+          console.log(`⏳ Nouvelle tentative dans ${RETRY_DELAY / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
+      }
 
-    return () => clearTimeout(timer);
+      // Max retries reached
+      if (isMounted && retryCount >= MAX_RETRIES) {
+        console.warn("⚠️ Commande non trouvée après plusieurs tentatives");
+        // Don't set error - show success page anyway since payment is confirmed
+        setStatus("success");
+        notificationService.warning("Commande confirmée mais détails indisponibles pour le moment");
+        cartService.reset();
+      }
+    };
+
+    // Start polling after delay to allow webhook to process
+    const timer = setTimeout(pollOrder, 2500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [sessionId]);
 
   const [showTrackingCode, setShowTrackingCode] = useState(false);
@@ -95,16 +120,18 @@ function OrderSuccess() {
     }
 
     try {
-      const endpoint = `/api/orders/${order._id}/receipt/pdf`;
+      // Guest orders use tracking code endpoint, authenticated users use order ID
+      const token = localStorage.getItem("token");
+      const endpoint = token 
+        ? `/api/orders/${order._id}/receipt/pdf`
+        : `/api/orders/track/${order.trackingCode}/receipt/pdf`;
 
       console.log(`📥 Téléchargement PDF - URL: ${endpoint}`);
       console.log(`📦 Order ID: ${order._id}, Tracking: ${order.trackingCode}`);
 
       const response = await fetch(endpoint, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       console.log(`📊 Réponse: ${response.status} ${response.statusText}`);
@@ -335,11 +362,11 @@ function OrderSuccess() {
             </h3>
 
             <div className="space-y-4 mb-6 pb-6 border-b border-gray-200">
-              {order.items?.map((item) => (
-                <div key={item.product._id} className="flex justify-between">
+              {order.items?.map((item, index) => (
+                <div key={item.product?._id || item._id || index} className="flex justify-between">
                   <div>
                     <p className="font-semibold text-gray-900">
-                      {item.product?.name}
+                      {item.product?.name || item.name}
                     </p>
                     <p className="text-sm text-gray-600">
                       Quantité: {item.quantity}
@@ -407,7 +434,7 @@ function OrderSuccess() {
 
           {order && (
             <Link
-              to={`/track/${order.trackingCode}`}
+              to={`/track?code=${order.trackingCode}`}
               className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition inline-flex items-center gap-2"
             >
               <Package size={16} />

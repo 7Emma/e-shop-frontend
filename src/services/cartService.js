@@ -205,7 +205,20 @@ class CartService {
       }
 
       const res = await apiUpdateCartItem(productId, quantity);
-      this.state = this.validateState(res.data.cart || res.data);
+      
+      // Pour les users authentifiés: utiliser la réponse du serveur
+      // Pour les guests: garder le panier local (le serveur retourne un panier vide)
+      if (!res.data.isGuest && res.data.cart) {
+        this.state = this.validateState(res.data.cart);
+      } else if (res.data.isGuest) {
+        // Guest user: mettre à jour localement le panier
+        const item = this.state.items.find(i => i.product._id === productId);
+        if (item) {
+          item.quantity = quantity;
+        }
+        this.recalculateTotals();
+      }
+      
       this.saveToStorage();
       this.notifySubscribers();
 
@@ -229,7 +242,17 @@ class CartService {
       productId = this.validateProductId(productId);
 
       const res = await apiRemoveFromCart(productId);
-      this.state = this.validateState(res.data.cart || res.data);
+      
+      // Pour les users authentifiés: utiliser la réponse du serveur
+      // Pour les guests: garder le panier local (le serveur retourne un panier vide)
+      if (!res.data.isGuest && res.data.cart) {
+        this.state = this.validateState(res.data.cart);
+      } else if (res.data.isGuest) {
+        // Guest user: supprimer localement
+        this.state.items = this.state.items.filter(i => i.product._id !== productId);
+        this.recalculateTotals();
+      }
+      
       this.saveToStorage();
       this.notifySubscribers();
 
@@ -264,6 +287,15 @@ class CartService {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  // ============ HELPERS ============
+  
+  recalculateTotals() {
+    const totalItems = this.state.items.reduce((sum, i) => sum + i.quantity, 0);
+    const totalPrice = Math.round(this.state.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0) * 100) / 100;
+    this.state.totalItems = totalItems;
+    this.state.totalPrice = totalPrice;
   }
 
   // ============ GETTERS ============

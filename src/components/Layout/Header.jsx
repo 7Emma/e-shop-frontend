@@ -1,14 +1,18 @@
-import { ShoppingCart, Search, Heart, Menu, X, Package } from "lucide-react";
+import { ShoppingCart, Search, Heart, Menu, X, Package, LogIn, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart, useWishlist } from "../../hooks";
+import { authService } from "../../services";
 
 function Header() {
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
+  const navigate = useNavigate();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(null);
   
   const mobileMenuRef = useRef(null);
 
@@ -19,6 +23,11 @@ function Header() {
     { name: "Bijoux", path: "/products/bijoux" },
     { name: "Beauté", path: "/products/beaute" },
   ];
+
+  // Récupérer l'utilisateur connecté
+  useEffect(() => {
+    setUser(authService.getUser());
+  }, []);
 
   // Gestion du scroll
   useEffect(() => {
@@ -82,7 +91,7 @@ function Header() {
 
       {/* Main Header */}
       <div className={`transition-all duration-300 ${isScrolled ? "py-3" : "py-4"}`}>
-        <div className="max-w-7xl mx-auto px-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4 md:gap-8">
             {/* Logo avec effet hover */}
             <a href="/" className="flex-shrink-0 group">
@@ -114,6 +123,31 @@ function Header() {
 
             {/* Right Icons avec tooltips */}
             <div className="flex items-center gap-4 md:gap-6">
+              {/* Login/User Button */}
+              {user ? (
+                <button
+                  onClick={() => {
+                    authService.logout();
+                    setUser(null);
+                    navigate('/');
+                  }}
+                  className="text-gray-700 hover:text-red-600 transition-all flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50"
+                  aria-label="Déconnexion"
+                >
+                  <User size={24} />
+                  <span className="hidden sm:inline text-sm font-medium">{user.firstName}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/login')}
+                  className="text-gray-700 hover:text-red-600 transition-all flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50"
+                  aria-label="Connexion"
+                >
+                  <LogIn size={24} />
+                  <span className="hidden sm:inline text-sm font-medium">Connexion</span>
+                </button>
+              )}
+
               {/* Wishlist */}
               <a 
                 href="/favoris" 
@@ -122,7 +156,7 @@ function Header() {
               >
                 <Heart size={24} className="group-hover:scale-110 transition-transform" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce-subtle">
+                  <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center animate-bounce-subtle shadow-lg border-2 border-white">
                     {wishlistCount > 99 ? '99+' : wishlistCount}
                   </span>
                 )}
@@ -151,7 +185,7 @@ function Header() {
               >
                 <ShoppingCart size={24} className="group-hover:scale-110 transition-transform" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce-subtle">
+                  <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center animate-bounce-subtle shadow-lg border-2 border-white">
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}

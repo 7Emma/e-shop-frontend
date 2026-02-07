@@ -14,6 +14,11 @@ export function useWishlist() {
     // Charger la wishlist initiale
     setWishlist(wishlistService.getWishlist());
 
+    // Récupérer les données actualisées du serveur
+    wishlistService.fetchWishlist().catch((err) => {
+      console.error('Erreur chargement wishlist:', err);
+    });
+
     // S'abonner aux changements
     const unsubscribe = wishlistService.subscribe((state) => {
       setWishlist(state.wishlist || wishlistService.getWishlist());

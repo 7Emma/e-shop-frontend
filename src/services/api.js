@@ -11,6 +11,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // ✅ Permet d'envoyer les cookies HTTP-only avec les requêtes CORS
 });
 
 // ⚠️ Token JWT optionnel - pas d'authentification requise
@@ -70,6 +71,8 @@ export const getOrderById = (id) =>
   api.get(`/orders/${id}`);
 export const getOrderBySessionId = (sessionId) => 
   api.get(`/orders/session/${sessionId}`);
+export const getOrderByTrackingCode = (trackingCode) => 
+  api.get(`/orders/track/${trackingCode}`);
 export const createOrder = (orderData) => 
   api.post('/orders', orderData);
 
@@ -102,8 +105,8 @@ export const deleteReview = (id) =>
   api.delete(`/reviews/${id}`);
 
 // Payment (Stripe)
-export const createCheckoutSession = (shippingAddress) => 
-  api.post('/payment/checkout', { shippingAddress });
+export const createCheckoutSession = (shippingAddress, cartItems = []) => 
+  api.post('/payment/checkout', { shippingAddress, cartItems });
 export const getPaymentStatus = (sessionId) => 
   api.get(`/payment/status/${sessionId}`);
 
